@@ -292,16 +292,27 @@ app.get('/api/circulating-supply', async (req, res) => {
       );
       circulatingSupply = calculation.circulatingSupply;
     }
+    const response = {
+      address: tokenAddress,
+      name: tokenDetails.name,
+      symbol: tokenDetails.symbol,
+      decimals: tokenDetails.decimals,
+      circulatingSupply: {
+        raw: tokenDetails.circulatingSupply.toString(),
+        formattedSupply : ethers.utils.formatUnits(circulatingSupply, tokenDetails.decimals)
+      },
+    }
+
+    res.json(response);
+    // const formattedSupply = ethers.utils.formatUnits(circulatingSupply, tokenDetails.decimals);
+    // console.log(`Formatted circulating supply: ${formattedSupply}`);
     
-    const formattedSupply = ethers.utils.formatUnits(circulatingSupply, tokenDetails.decimals);
-    console.log(`Formatted circulating supply: ${formattedSupply}`);
+    // // Return a clean number without trailing characters
+    // const numericValue = parseFloat(formattedSupply);
     
-    // Return a clean number without trailing characters
-    const numericValue = parseFloat(formattedSupply);
-    
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.write(numericValue.toString());
-    res.end();
+    // res.writeHead(200, { 'Content-Type': 'text/plain' });
+    // res.write(numericValue.toString());
+    // res.end();
   } catch (error) {
     console.error(`Error in circulating supply endpoint: ${error.message}`);
     res.status(500).send(`Error fetching circulating supply: ${error.message}`);
