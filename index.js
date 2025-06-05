@@ -298,7 +298,7 @@ app.get('/api/circulating-supply', async (req, res) => {
       symbol: tokenDetails.symbol,
       decimals: tokenDetails.decimals,
       circulatingSupply: {
-        raw: tokenDetails.circulatingSupply.toString(),
+        raw: circulatingSupply.toString(),
         formattedSupply : ethers.utils.formatUnits(circulatingSupply, tokenDetails.decimals)
       },
     }
