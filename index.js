@@ -304,15 +304,6 @@ app.get('/api/circulating-supply', async (req, res) => {
     }
 
     res.json(response);
-    // const formattedSupply = ethers.utils.formatUnits(circulatingSupply, tokenDetails.decimals);
-    // console.log(`Formatted circulating supply: ${formattedSupply}`);
-    
-    // // Return a clean number without trailing characters
-    // const numericValue = parseFloat(formattedSupply);
-    
-    // res.writeHead(200, { 'Content-Type': 'text/plain' });
-    // res.write(numericValue.toString());
-    // res.end();
   } catch (error) {
     console.error(`Error in circulating supply endpoint: ${error.message}`);
     res.status(500).send(`Error fetching circulating supply: ${error.message}`);
