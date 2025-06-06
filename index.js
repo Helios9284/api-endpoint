@@ -118,126 +118,168 @@ async function getTokenDetails(tokenAddress) {
   }
 }
 
+// async function calculateActualCirculatingSupply(tokenAddress, totalSupply, decimals) {
+//   console.log(`Calculating actual circulating supply for token: ${tokenAddress}`);
+  
+//   try {
+//     const apiUrl = `https://api.ethplorer.io/getTopTokenHolders/${tokenAddress}?apiKey=freekey&limit=100`;
+//     const holdersResponse = await axios.get(apiUrl);
+    
+//     if (!holdersResponse.data || !holdersResponse.data.holders) {
+//       console.warn("Could not fetch holder data from Ethplorer, falling back to total supply");
+//       return { 
+//         circulatingSupply: totalSupply, 
+//         circulatingPercentage: "100.00", 
+//         nonCirculatingBreakdown: {}
+//       };
+//     }
+    
+//     const holders = holdersResponse.data.holders;
+    
+//     // Common burn addresses to check
+//     const burnAddresses = [
+//       "0x0000000000000000000000000000000000000000",
+//       "0x000000000000000000000000000000000000dead",
+//       "0xdead000000000000000042069420694206942069",
+//       "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+//     ];
+    
+//     const holderData = [];
+//     const totalSupplyBN = BigInt(totalSupply.toString());
+    
+//     // Analyze top holders (limit to top 20 for efficiency)
+//     for (let i = 0; i < Math.min(20, holders.length); i++) {
+//       const holder = holders[i];
+//       const holderAddress = holder.address;
+//       const quantity = BigInt(Math.floor(holder.share * Number(totalSupplyBN) / 100)).toString();
+//       const percentage = holder.share;
+      
+//       // Check if this is a burn address
+//       const isBurnAddress = burnAddresses.includes(holderAddress.toLowerCase());
+      
+//       if (isBurnAddress) {
+//         holderData.push({ address: holderAddress, type: "BURN", quantity, percentage });
+//         continue;
+//       }
+      
+//       // Check transaction history for this holder
+//       try {
+//         const txListUrl = `https://api.etherscan.io/api?module=account&action=tokentx&contractaddress=${tokenAddress}&address=${holderAddress}&page=1&offset=5&sort=desc&apikey=${etherscanApiKey}`;
+//         const txResponse = await axios.get(txListUrl);
+        
+//         if (txResponse.data.status === "1" && txResponse.data.result.length > 0) {
+//           const txs = txResponse.data.result;
+          
+//           // Try to identify treasury/team wallets based on patterns
+//           if (txs.every(tx => tx.from === holderAddress)) {
+//             holderData.push({ address: holderAddress, type: "TREASURY/TEAM", quantity, percentage });
+//           } else if (txs.every(tx => tx.to === holderAddress)) {
+//             holderData.push({ address: holderAddress, type: "LOCK/VESTING", quantity, percentage });
+//           } else {
+//             holderData.push({ address: holderAddress, type: "UNKNOWN", quantity, percentage });
+//           }
+//         } else {
+//           holderData.push({ address: holderAddress, type: "NO_TRANSACTIONS", quantity, percentage });
+//         }
+//       } catch (error) {
+//         console.log(`Error analyzing holder ${holderAddress}: ${error.message}`);
+//         holderData.push({ address: holderAddress, type: "ERROR", quantity, percentage });
+//       }
+//     }
+    
+//     // Calculate non-circulating supply components
+//     const nonCirculatingTypes = ["BURN", "TREASURY/TEAM", "LOCK/VESTING"];
+//     const nonCirculatingData = holderData.filter(h => nonCirculatingTypes.includes(h.type));
+    
+//     const nonCirculatingBreakdown = {};
+//     let totalNonCirculating = BigInt(0);
+    
+//     // Group by type
+//     nonCirculatingData.forEach(data => {
+//       const type = data.type;
+//       if (!nonCirculatingBreakdown[type]) {
+//         nonCirculatingBreakdown[type] = {
+//           addresses: [],
+//           totalQuantity: BigInt(0),
+//           totalPercentage: 0
+//         };
+//       }
+      
+//       nonCirculatingBreakdown[type].addresses.push({
+//         address: data.address,
+//         quantity: data.quantity,
+//         percentage: data.percentage
+//       });
+      
+//       nonCirculatingBreakdown[type].totalQuantity = nonCirculatingBreakdown[type].totalQuantity + BigInt(data.quantity);
+//       nonCirculatingBreakdown[type].totalPercentage += data.percentage;
+//       totalNonCirculating = totalNonCirculating + BigInt(data.quantity);
+//     });
+    
+//     // Calculate circulating supply
+//     const circulatingSupply = totalSupplyBN - totalNonCirculating;
+//     const circulatingPercentage = (100 - (parseFloat(totalNonCirculating) * 100 / parseFloat(totalSupplyBN))).toFixed(2);
+    
+//     console.log(`Calculated circulating supply: ${circulatingSupply.toString()} (${circulatingPercentage}% of total)`);
+    
+//     // Format the breakdown for readability
+//     Object.keys(nonCirculatingBreakdown).forEach(type => {
+//       nonCirculatingBreakdown[type].totalQuantity = nonCirculatingBreakdown[type].totalQuantity.toString();
+//       nonCirculatingBreakdown[type].totalPercentage = nonCirculatingBreakdown[type].totalPercentage.toFixed(2);
+//     });
+    
+//     return {
+//       circulatingSupply,
+//       circulatingPercentage,
+//       nonCirculatingBreakdown
+//     };
+//   } catch (error) {
+//     console.error(`Error calculating actual circulating supply: ${error.message}`);
+//     console.warn("Falling back to total supply as circulating supply");
+//     return { 
+//       circulatingSupply: totalSupply, 
+//       circulatingPercentage: "100.00",
+//       nonCirculatingBreakdown: {}
+//     };
+//   }
+// }
 async function calculateActualCirculatingSupply(tokenAddress, totalSupply, decimals) {
   console.log(`Calculating actual circulating supply for token: ${tokenAddress}`);
-  
+
   try {
-    const apiUrl = `https://api.ethplorer.io/getTopTokenHolders/${tokenAddress}?apiKey=freekey&limit=100`;
-    const holdersResponse = await axios.get(apiUrl);
-    
-    if (!holdersResponse.data || !holdersResponse.data.holders) {
-      console.warn("Could not fetch holder data from Ethplorer, falling back to total supply");
-      return { 
-        circulatingSupply: totalSupply, 
-        circulatingPercentage: "100.00", 
-        nonCirculatingBreakdown: {}
-      };
-    }
-    
-    const holders = holdersResponse.data.holders;
-    
-    // Common burn addresses to check
-    const burnAddresses = [
-      "0x0000000000000000000000000000000000000000",
-      "0x000000000000000000000000000000000000dead",
-      "0xdead000000000000000042069420694206942069",
-      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-    ];
-    
-    const holderData = [];
+    // Static locked token value (in full units, not decimals)
+    const lockedTokenValue = BigInt("100000000"); // 100 million
+
     const totalSupplyBN = BigInt(totalSupply.toString());
+    const decimalsFactor = BigInt(10) ** BigInt(decimals);
     
-    // Analyze top holders (limit to top 20 for efficiency)
-    for (let i = 0; i < Math.min(20, holders.length); i++) {
-      const holder = holders[i];
-      const holderAddress = holder.address;
-      const quantity = BigInt(Math.floor(holder.share * Number(totalSupplyBN) / 100)).toString();
-      const percentage = holder.share;
-      
-      // Check if this is a burn address
-      const isBurnAddress = burnAddresses.includes(holderAddress.toLowerCase());
-      
-      if (isBurnAddress) {
-        holderData.push({ address: holderAddress, type: "BURN", quantity, percentage });
-        continue;
-      }
-      
-      // Check transaction history for this holder
-      try {
-        const txListUrl = `https://api.etherscan.io/api?module=account&action=tokentx&contractaddress=${tokenAddress}&address=${holderAddress}&page=1&offset=5&sort=desc&apikey=${etherscanApiKey}`;
-        const txResponse = await axios.get(txListUrl);
-        
-        if (txResponse.data.status === "1" && txResponse.data.result.length > 0) {
-          const txs = txResponse.data.result;
-          
-          // Try to identify treasury/team wallets based on patterns
-          if (txs.every(tx => tx.from === holderAddress)) {
-            holderData.push({ address: holderAddress, type: "TREASURY/TEAM", quantity, percentage });
-          } else if (txs.every(tx => tx.to === holderAddress)) {
-            holderData.push({ address: holderAddress, type: "LOCK/VESTING", quantity, percentage });
-          } else {
-            holderData.push({ address: holderAddress, type: "UNKNOWN", quantity, percentage });
-          }
-        } else {
-          holderData.push({ address: holderAddress, type: "NO_TRANSACTIONS", quantity, percentage });
-        }
-      } catch (error) {
-        console.log(`Error analyzing holder ${holderAddress}: ${error.message}`);
-        holderData.push({ address: holderAddress, type: "ERROR", quantity, percentage });
-      }
-    }
-    
-    // Calculate non-circulating supply components
-    const nonCirculatingTypes = ["BURN", "TREASURY/TEAM", "LOCK/VESTING"];
-    const nonCirculatingData = holderData.filter(h => nonCirculatingTypes.includes(h.type));
-    
-    const nonCirculatingBreakdown = {};
-    let totalNonCirculating = BigInt(0);
-    
-    // Group by type
-    nonCirculatingData.forEach(data => {
-      const type = data.type;
-      if (!nonCirculatingBreakdown[type]) {
-        nonCirculatingBreakdown[type] = {
-          addresses: [],
-          totalQuantity: BigInt(0),
-          totalPercentage: 0
-        };
-      }
-      
-      nonCirculatingBreakdown[type].addresses.push({
-        address: data.address,
-        quantity: data.quantity,
-        percentage: data.percentage
-      });
-      
-      nonCirculatingBreakdown[type].totalQuantity = nonCirculatingBreakdown[type].totalQuantity + BigInt(data.quantity);
-      nonCirculatingBreakdown[type].totalPercentage += data.percentage;
-      totalNonCirculating = totalNonCirculating + BigInt(data.quantity);
-    });
-    
+    // Convert locked tokens to smallest unit
+    const lockedTokenAmount = lockedTokenValue * decimalsFactor;
+
     // Calculate circulating supply
-    const circulatingSupply = totalSupplyBN - totalNonCirculating;
-    const circulatingPercentage = (100 - (parseFloat(totalNonCirculating) * 100 / parseFloat(totalSupplyBN))).toFixed(2);
-    
+    const circulatingSupply = totalSupplyBN - lockedTokenAmount;
+
+    // Percentage
+    const circulatingPercentage = (Number(circulatingSupply) * 100 / Number(totalSupplyBN)).toFixed(2);
+
     console.log(`Calculated circulating supply: ${circulatingSupply.toString()} (${circulatingPercentage}% of total)`);
-    
-    // Format the breakdown for readability
-    Object.keys(nonCirculatingBreakdown).forEach(type => {
-      nonCirculatingBreakdown[type].totalQuantity = nonCirculatingBreakdown[type].totalQuantity.toString();
-      nonCirculatingBreakdown[type].totalPercentage = nonCirculatingBreakdown[type].totalPercentage.toFixed(2);
-    });
-    
+
     return {
       circulatingSupply,
       circulatingPercentage,
-      nonCirculatingBreakdown
+      nonCirculatingBreakdown: {
+        LOCKED: {
+          totalQuantity: lockedTokenAmount.toString(),
+          totalPercentage: (100 - parseFloat(circulatingPercentage)).toFixed(2),
+          addresses: ["STATIC_LOCK"]
+        }
+      }
     };
   } catch (error) {
     console.error(`Error calculating actual circulating supply: ${error.message}`);
     console.warn("Falling back to total supply as circulating supply");
-    return { 
-      circulatingSupply: totalSupply, 
+    return {
+      circulatingSupply: totalSupply,
       circulatingPercentage: "100.00",
       nonCirculatingBreakdown: {}
     };
@@ -291,8 +333,8 @@ app.get('/api/circulating-supply', async (req, res) => {
         tokenDetails.decimals
       );
       circulatingSupply = calculation.circulatingSupply;
-    }
-    const response = {
+      console.log("aaa--", circulatingSupply);
+      const response = {
       address: tokenAddress,
       name: tokenDetails.name,
       symbol: tokenDetails.symbol,
@@ -301,9 +343,15 @@ app.get('/api/circulating-supply', async (req, res) => {
         raw: circulatingSupply.toString(),
         formattedSupply : ethers.utils.formatUnits(circulatingSupply, tokenDetails.decimals)
       },
+      
     }
-
+    const formattedSupply = ethers.utils.formatUnits(circulatingSupply, tokenDetails.decimals);
+    console.log("bbbb---", formattedSupply)
     res.json(response);
+    }
+    
+
+    
   } catch (error) {
     console.error(`Error in circulating supply endpoint: ${error.message}`);
     res.status(500).send(`Error fetching circulating supply: ${error.message}`);
