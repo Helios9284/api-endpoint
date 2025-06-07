@@ -325,21 +325,11 @@ app.get('/api/circulating-supply', async (req, res) => {
         tokenDetails.decimals
       );
       circulatingSupply = calculation.circulatingSupply;
-      console.log("aaa--", circulatingSupply);
-      const response = {
-      address: tokenAddress,
-      name: tokenDetails.name,
-      symbol: tokenDetails.symbol,
-      decimals: tokenDetails.decimals,
-      circulatingSupply: {
-        raw: circulatingSupply.toString(),
-        formattedSupply : ethers.utils.formatUnits(circulatingSupply, tokenDetails.decimals)
-      },
-      
-    }
     const formattedSupply = ethers.utils.formatUnits(circulatingSupply, tokenDetails.decimals);
-    console.log("bbbb---", formattedSupply)
-    res.json(response);
+    console.log(`Formatted circulating supply: ${formattedSupply}`);
+    
+    res.setHeader('Content-Type', 'text/plain');
+    res.send(formattedSupply);
     }
     
 
