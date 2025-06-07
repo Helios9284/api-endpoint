@@ -292,18 +292,10 @@ app.get('/api/total-supply', async (req, res) => {
     console.log(`Processing total supply request for token: ${tokenAddress}`);
     
     const tokenDetails = await getTokenDetails(tokenAddress);
-    const response = {
-      address: tokenAddress,
-      name: tokenDetails.name,
-      symbol: tokenDetails.symbol,
-      decimals: tokenDetails.decimals,
-      totalSupply: {
-        raw: tokenDetails.totalSupply.toString(),
-        formatted: ethers.utils.formatUnits(tokenDetails.totalSupply, tokenDetails.decimals)
-      },
-    }
-
-    res.json(response);
+    const formattedSupply = ethers.utils.formatUnits(tokenDetails.totalSupply, tokenDetails.decimals);
+    console.log(`Formatted total supply: ${formattedSupply}`); 
+    res.setHeader('Content-Type', 'text/plain');
+    res.send(formattedSupply);
   } catch (error) {
     console.error(`Error in total supply endpoint: ${error.message}`);
     res.status(500).send(`Error fetching total supply: ${error.message}`);
