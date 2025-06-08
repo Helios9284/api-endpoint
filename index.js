@@ -294,8 +294,9 @@ app.get('/api/total-supply', async (req, res) => {
     const tokenDetails = await getTokenDetails(tokenAddress);
     const formattedSupply = ethers.utils.formatUnits(tokenDetails.totalSupply, tokenDetails.decimals);
     console.log(`Formatted total supply: ${formattedSupply}`); 
-    res.setHeader('Content-Type', 'text/plain');
-    res.send(formattedSupply);
+    res.json({ status: 'success', data: formattedSupply });
+    // res.setHeader('Content-Type', 'text/plain');
+    // res.send(formattedSupply);
   } catch (error) {
     console.error(`Error in total supply endpoint: ${error.message}`);
     res.status(500).send(`Error fetching total supply: ${error.message}`);
@@ -327,9 +328,9 @@ app.get('/api/circulating-supply', async (req, res) => {
       circulatingSupply = calculation.circulatingSupply;
     const formattedSupply = ethers.utils.formatUnits(circulatingSupply, tokenDetails.decimals);
     console.log(`Formatted circulating supply: ${formattedSupply}`);
-    
-    res.setHeader('Content-Type', 'text/plain');
-    res.send(formattedSupply);
+    res.json({ status: 'success', data: formattedSupply });
+    // res.setHeader('Content-Type', 'text/plain');
+    // res.send(formattedSupply);
     }
     
 
@@ -504,8 +505,22 @@ app.get('/api/circulating-calculation', async (req, res) => {
   }
 });
 
-app.use((req, res) => {
-  res.status(404).send('Not Found');
+app.use((req, res, next) => {
+  const accept = req.headers.accept || '';
+  if (!accept.includes('application/json')) {
+    return res.status(406).json({
+      status: 'error',
+      message: 'Accept header must include application/json'
+    });
+  }
+  const ct = req.headers['content-type'] || '';
+  if (['POST', 'PUT', 'PATCH'].includes(req.method) && !ct.includes('application/json')) {
+    return res.status(415).json({
+      status: 'error',
+      message: 'Content-Type must be application/json'
+    });
+  }
+  next();
 });
 
 app.use((err, req, res, next) => {
